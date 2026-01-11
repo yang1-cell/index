@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>消除游戏</title>
+	<style>
+		*{
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+		body{
+			background: linear-gradient(135deg,#ffafbd 30%,#ffc3a0 70%);
+			min-height: 100vh;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
+		.game-header{
+			color: #fff;
+			text-shadow: 2px 2px 4px rgba(0, 0, 0, .5);
+			margin: 20px 0;
+			font-size: 2.5em;
+		}
+		.info-panel{
+			color: #fff;
+			margin: 10px 0;
+			font-size: 1.2em;
+		}
+		.circle-button{
+			width: 60px;
+			height: 60px;
+			background: linear-gradient(135deg,#fc758c 30%,#f79156 70%);
+			border-radius: 50%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-size: 24px;
+			cursor: pointer;
+			box-shadow: 0 4px 6px rgba(0, 0, 0, .3);
+			position: relative;
+			top: -700px;
+			right: -200px;
+			transition: transform 0.3s ease-in-out;
+		}
+		.play-area{
+			width: 500px;
+			height: 500px;
+			background: rgba(255, 255, 255, .1);
+			border-radius: 15px;
+			box-shadow: 0 0 30px rgba(0, 0, 0, .2);
+			overflow: hidden;
+		}
+		.grid-cell{
+			width: 25px;
+			height: 25px;
+			float: left;
+			position: relative;
+		}
+		.selection-bar{
+			width: 433px;
+			height: 70px;
+			background: rgba(255, 255, 255, .2);
+			border-radius: 10px;
+			margin: 30px 0;
+			padding: 10px;
+			display: flex;
+			gap: 10px;
+			backdrop-filter: blur(5px);
+			border:  2px dashed rgba(255, 255, 255, .5);
+		}
+		.slot{
+			width: 50px;
+			height: 50px;
+			background: rgba(255, 255, 255, .5);
+			border-radius: 8px;
+			position: relative;
+			box-shadow: 0 3px 6px rgba(0, 0, 0, .2);
+		}
+		/* 定义动画 */
+		.rotate{
+			animation: spin 3s linear infinite;
+		}
+		@keyframes spin{
+			from{
+				transform: rotate(0deg);
+			}
+			to{
+				transform: rotate(360deg);
+			}
+		}
+	</style>
+</head>
+<body>
+	<h1 class="game-header">趣味消除</h1>
+	<div class="info-panel">剩余卡片：<span id="left-count">0</span></div>
+	<div class="play-area"></div>
+	<div class="selection-bar">
+		<div class="slot"></div>
+		<div class="slot"></div>
+		<div class="slot"></div>
+		<div class="slot"></div>
+		<div class="slot"></div>
+		<div class="slot"></div>
+		<div class="slot"></div>
+	</div>
+	<!-- 音乐按钮 -->
+	<div class="circle-button" id="play-pause-btn">🎵</div>
+	<!-- 添加背景音乐 -->
+	<audio id="background-music" loop>
+		<source src='./ylgy.mp3' type="audio/mpeg"/>
+		您的浏览器不支持音频播放
+	</audio>
+</body>
+<script>
+	//获取音频元素和按钮
+	const audio = document.getElementById('background-music')
+	const button = document.getElementById('play-pause-btn')
+	//初始化音频的状态
+	let isPlaying = false
+	//给按钮绑定事件
+	button.addEventListener('click',function(){
+		if(isPlaying){
+			//如果正在播放，就暂停音乐
+			audio.pause()
+			//停止旋转
+			button.classList.remove('rotate')
+		}else{
+			//如果没有播放，就开始播放
+			audio.play().catch(err=>{
+				console.error('音乐播放失败：',err)
+			})
+			button.classList.add('rotate')
+		}
+		//切换播放的状态
+		isPlaying = !isPlaying
+	})
+</script>
+</html>

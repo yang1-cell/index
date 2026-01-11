@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>消除游戏</title>
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			body {
+				background: linear-gradient(135deg, #ffafbd 30%, #ffc3a0 70%);
+				min-height: 100vh;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+			}
+
+			.game-header {
+				color: #fff;
+				text-shadow: 2px 2px 4px rgba(0, 0, 0, .5);
+				margin: 20px 0;
+				font-size: 2.5em;
+			}
+
+			.info-panel {
+				color: #fff;
+				margin: 10px 0;
+				font-size: 1.2em;
+			}
+
+			.circle-button {
+				width: 60px;
+				height: 60px;
+				background: linear-gradient(135deg, #fc758c 30%, #f79156 70%);
+				border-radius: 50%;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				font-size: 24px;
+				cursor: pointer;
+				box-shadow: 0 4px 6px rgba(0, 0, 0, .3);
+				position: relative;
+				top: -700px;
+				right: -200px;
+				transition: transform 0.3s ease-in-out;
+			}
+
+			.play-area {
+				width: 500px;
+				height: 500px;
+				background: rgba(255, 255, 255, .1);
+				border-radius: 15px;
+				box-shadow: 0 0 30px rgba(0, 0, 0, .2);
+				overflow: hidden;
+			}
+
+			.grid-cell {
+				width: 25px;
+				height: 25px;
+				float: left;
+				position: relative;
+				border: 1px solid #eee
+			}
+
+			.selection-bar {
+				width: 433px;
+				height: 70px;
+				background: rgba(255, 255, 255, .2);
+				border-radius: 10px;
+				margin: 30px 0;
+				padding: 10px;
+				display: flex;
+				gap: 10px;
+				backdrop-filter: blur(5px);
+				border: 2px dashed rgba(255, 255, 255, .5);
+			}
+
+			.slot {
+				width: 50px;
+				height: 50px;
+				background: rgba(255, 255, 255, .5);
+				border-radius: 8px;
+				position: relative;
+				box-shadow: 0 3px 6px rgba(0, 0, 0, .2);
+			}
+
+			/* 定义动画 */
+			.rotate {
+				animation: spin 3s linear infinite;
+			}
+
+			@keyframes spin {
+				from {
+					transform: rotate(0deg);
+				}
+
+				to {
+					transform: rotate(360deg);
+				}
+			}
+
+			.tile {
+				width: 50px;
+				height: 50px;
+				background: linear-gradient(145deg, #ffffff, #f0f0f0);
+				position: absolute;
+				border-radius: 8px;
+				box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+				cursor: pointer;
+				transition: all 0.2s;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				font-size: 24px;
+				color: #2c3e50;
+			}
+
+			.tile:hover {
+				transform: translateY(-3px);
+				box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+			}
+
+			.tile::before {
+				content: '';
+				position: absolute;
+				top: 2px;
+				left: 2px;
+				right: 2px;
+				bottom: 2px;
+				border: 2px solid rgba(255, 255, 255, 0.5);
+				border-radius: 6px;
+			}
+
+			.overlay {
+				width: 50px;
+				height: 50px;
+				background: rgba(255, 255, 255, .5);
+				position: absolute;
+				border-radius: 8px;
+				backdrop-filter: blur(2px);
+			}
+		</style>
+	</head>
+	<body>
+		<h1 class="game-header">趣味消除</h1>
+		<div class="info-panel">剩余卡片：<span id="left-count">0</span></div>
+		<div class="play-area"></div>
+		<div class="selection-bar">
+			<div class="slot"></div>
+			<div class="slot"></div>
+			<div class="slot"></div>
+			<div class="slot"></div>
+			<div class="slot"></div>
+			<div class="slot"></div>
+			<div class="slot"></div>
+		</div>
+		<!-- 音乐按钮 -->
+		<div class="circle-button" id="play-pause-btn">🎵</div>
+		<!-- 添加背景音乐 -->
+		<audio id="background-music" loop>
+			<source src='./ylgy.mp3' type="audio/mpeg" />
+			您的浏览器不支持音频播放
+		</audio>
+	</body>
+	<script>
+		//获取音频元素和按钮
+		const audio = document.getElementById('background-music')
+		const button = document.getElementById('play-pause-btn')
+		//初始化音频的状态
+		let isPlaying = false
+		//给按钮绑定事件
+		button.addEventListener('click', function() {
+			if (isPlaying) {
+				//如果正在播放，就暂停音乐
+				audio.pause()
+				//停止旋转
+				button.classList.remove('rotate')
+			} else {
+				//如果没有播放，就开始播放
+				audio.play().catch(err => {
+					console.error('音乐播放失败：', err)
+				})
+				button.classList.add('rotate')
+			}
+			//切换播放的状态
+			isPlaying = !isPlaying
+		})
+		// 素材:['🐏', '🌿', '🌸', '🍄', '🌼', '🎋', '🍀', '🌵', '🌻']
+
+		//初始化游戏
+		const palyArea = document.querySelector('.play-area')
+		const gridMap = {}
+		const symbols = ['🐏', '🌿', '🌸', '🍄', '🌼', '🎋', '🍀', '🌵', '🌻']
+
+		//创建网格布局
+		for (let row = 0; row < 20; row++) {
+			for (let col = 0; col < 20; col++) {
+				const cell = document.createElement('div')
+				cell.className = 'grid-cell'
+				palyArea.appendChild(cell)
+				gridMap[`${col}-${row}`] = cell
+			}
+		}
+		// console.log(gridMap)
+
+		//卡片管理
+		let tileList = [] //存储所有的卡片数组
+		let selectedTiles = []
+		const slots = document.querySelectorAll('.slot')
+		const countDisplay = document.getElementById('left-count')
+
+		//生成具体的卡片元素
+		function createTile(row, col, level) {
+			const tile = document.createElement('div')
+			tile.className = 'tile'
+			tile.style.zIndex = 10 - level
+			tile.dataset.index = `${col}-${row}` //存储卡片的坐标
+			return tile
+		}
+
+		//检查卡片位置是否有效
+		// layout 当前卡片的二维数组（0空，1已有卡片)
+		function isValid(row, col, layout) {
+			//检查四个方向是否有卡片
+			return ![layout[row][col - 1],
+				layout[row - 1]?.[col - 1],
+				layout[row - 1]?.[col],
+				layout[row - 1]?.[col + 1],
+			].includes(1)
+		}
+
+		//生成卡片布局
+		function generateLayout(level) {
+			//初始化20*20的二维数组
+			const layout = Array.from({
+				length: 20
+			}, () => Array(20).fill(0))
+			//根据level确定生成范围
+			for (let i = level; i < 19 - level; i++) {
+				for (let j = 1; j < 10; j++) {
+					// 20% 概率生成卡片，并且检查该位置是否有效 
+					if (Math.random() < 0.2 && isValid(i, j, layout)) {
+						layout[i][j] = 1;
+						layout[i][18 - j] = 1;
+					}
+				}
+			}
+			//根据layput创建卡片并添加到DOM
+			layout.forEach((row, i) => {
+				row.forEach((val, j) => {
+					if (val === 1) {
+						const tile = createTile(i, j, level);
+						gridMap[`${j}-${i}`].appendChild(tile);
+						tileList.push(tile);
+					}
+				});
+			});
+		}
+
+		//初始化卡片
+		for (let i = 7; i > 0; i--) generateLayout(i)
+
+		//更新剩余卡片的数量
+		function updateCount() {
+			countDisplay.textContent = tileList.length
+		}
+		//移除多余的卡片，保证卡片是3的倍数
+		const extra = tileList.length % 3
+		if (extra !== 0) {
+			const toRemove = tileList.splice(-extra, extra)
+			toRemove.forEach(tile => tile.parentNode.removeChild(tile))
+		}
+		updateCount()
+
+		//分配图案
+		const patternList = []
+		const totalGroups = Math.floor(tileList.length / 3)
+		for (let i = 0; i < totalGroups; i++) {
+			patternList.push(...Array(3).fill(symbols[i % symbols.length]))
+		}
+		// patternList.sort(()=>Math.random() -0.5)
+		shuffle(patternList)
+		tileList.forEach((tile, i) => {
+			tile.textContent = patternList[i]
+			tile.dataset.type = patternList[i]
+		})
+		//洗牌算法
+		function shuffle(array) {
+			for (let i = array.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[array[i], array[j]] = [array[j], array[i]];
+			}
+			return array;
+		}
+		//给被遮住的卡片添加遮罩层
+		function renderOverlay() {
+			document.querySelectorAll('.overlay').forEach(mask => mask.remove())
+			tileList.forEach(tile => {
+				const rect = tile.getBoundingClientRect()
+				const points = [
+					[rect.left, rect.top],
+					[rect.left + 49, rect.top],
+					[rect.left, rect.top + 49],
+					[rect.left + 49, rect.top + 49]
+				]
+				//定点是否被覆盖
+				const isCovered = points.some(([x, y]) => {
+					const el = document.elementFromPoint(x, y)
+					return el !== tile && tileList.includes(el)
+				})
+				//添加遮罩层
+				if (isCovered) {
+					const overlay = document.createElement('div')
+					overlay.className = 'overlay'
+					overlay.style.zIndex = tile.style.zIndex;
+					tile.parentNode.appendChild(overlay)
+				}
+			})
+		}
+		renderOverlay()
+
+		//游戏逻辑
+		palyArea.addEventListener('click', function(e) {
+			if (!e.target.classList.contains("tile")) return;
+			const tile = e.target;
+			tile.parentNode.removeChild(tile);
+			tileList = tileList.filter(t => t !== tile); 
+			updateCount();
+
+			selectedTiles.push(tile); 
+
+			renderOverlay(); // 重新渲染遮罩层 
+			updateSlots()
+		})
+		
+		//更新选择槽中卡片的显示
+		function updateSlots(){
+			slots.forEach(slot => slot.innerHTML = '')
+			selectedTiles.forEach((tile,i) =>{
+				const clone = tile.cloneNode(true)
+				clone.style.position = 'static'
+				slots[i].appendChild(clone)
+			})
+		}
+	</script>
+</html>
